@@ -44,7 +44,7 @@
             canvas.width = window.innerWidth;
             wordGame = new Suica("mainCanvas");
             background([135 / 255, 206 / 255, 250 / 250]);
-            var grassTexture = new Suica.Image("/grass-free-texture.jpg");
+            var grassTexture = new Suica.Image("./grass-free-texture.jpg");
             grassTexture.scale = [grassSize/256, grassSize/256];
             var grass = new Suica.Cuboid(0, [grassSize, grassSize, 1]).custom({
                 image: grassTexture,
@@ -215,12 +215,12 @@
 
         function createCity() {
             cityGroup = new Suica.Group([]);
-            var houseBaseTexture = new Suica.Image("/free-house-wall.jpg");
+            var houseBaseTexture = new Suica.Image("./free-house-wall.jpg");
             houseBaseTexture.scale = [houseTextureMultiplier, houseTextureMultiplier];
             var houseBaseStyle = {
                 image: houseBaseTexture
             };
-            var roofTexture = new Suica.Image("free-roof-textures.jpg");
+            var roofTexture = new Suica.Image("./free-roof-textures.jpg");
             var roofStyle = {
                 image: roofTexture,
                 spin: Math.PI / 4
