@@ -36,6 +36,7 @@
 		var inputText = "";
 		var correctAnswer = "";
 		var currentWord = "";
+
         function main() {
 			shuffle(words);
             var canvas = document.getElementById("mainCanvas");
@@ -44,7 +45,7 @@
             wordGame = new Suica("mainCanvas");
             background([135 / 255, 206 / 255, 250 / 250]);
             var grassTexture = new Suica.Image("/grass-free-texture.jpg");
-            grassTexture.scale = [grassSizeScale, grassSizeScale];
+            grassTexture.scale = [grassSize/256, grassSize/256];
             var grass = new Suica.Cuboid(0, [grassSize, grassSize, 1]).custom({
                 image: grassTexture,
                 light: false
