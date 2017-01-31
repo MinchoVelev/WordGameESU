@@ -1,0 +1,292 @@
+﻿<!DOCTYPE HTML>
+
+<head>
+    <meta charset="utf-8">
+    <script src="suica.min.js"></script>
+	<script src="words.json"></script>
+    <script>
+        "use strict";
+        //constants
+
+        var cubeSize = Math.pow(2, 6);
+        var bombSize = cubeSize / 3;
+        var houseTextureMultiplier = cubeSize / 64;
+        var roofRadius = (cubeSize * 2.2) / Math.PI;
+        var cityCenter = [0, 0, cubeSize / 2];
+        var lookRadiusMultiplier = 25;
+        var citySizeMultiplier = 4;
+        var bombRangeMultiplier = citySizeMultiplier;
+        var grassSizeScale = cubeSize / 8;
+        var grassSize = 2048 * grassSizeScale;
+        var detonationHeight = (cubeSize + bombSize) * 2;
+        var undefined;
+		
+        //end of constants
+
+        var wordGame;
+        var active = true;
+        var cityGroup;
+        var bombs = [];
+        var lastMousePosition;
+        var isMousePressed = false;
+        var score = 0;
+        var lookingAt = [0, 0, 0];
+        var cameraPosition = [0, 4000, 750];
+        var lastCreatedBombSecond = -1;
+		var inputText = "";
+		var correctAnswer = "";
+		var currentWord = "";
+        function main() {
+			shuffle(words);
+            var canvas = document.getElementById("mainCanvas");
+            canvas.height = window.innerHeight;
+            canvas.width = window.innerWidth;
+            wordGame = new Suica("mainCanvas");
+            background([135 / 255, 206 / 255, 250 / 250]);
+            var grassTexture = new Suica.Image("/grass-free-texture.jpg");
+            grassTexture.scale = [grassSizeScale, grassSizeScale];
+            var grass = new Suica.Cuboid(0, [grassSize, grassSize, 1]).custom({
+                image: grassTexture,
+                light: false
+            });
+            var star1 = new Suica.Sphere([0, -15000, 500], 3000);
+            star1.color = [253 / 255, 184 / 255, 19 / 255];
+            createCity();
+            addMouseListeners();
+            lookAt(cameraPosition, lookingAt, [0, 0, 1]);
+            wordGame.nextFrame = loop;
+        }
+
+        function loop() {
+            var time = Math.round(Suica.time);
+            var label = document.getElementById('infoLabel');
+            label.innerHTML = "Time: " + time + " Score: " + score;
+
+
+            if (time % 4 == 3 && time != lastCreatedBombSecond) {
+                lastCreatedBombSecond = time;
+                var newBomb = createBomb();
+                bombs.push(newBomb);
+            }
+
+
+
+            for (var i = 0; i < bombs.length; i++) {
+
+                bombs[i].moveBy([0, 0, -2]);
+                if (bombs[i].realCenter[2] < detonationHeight) {
+                    destroyBombByIndex(i);
+					explode();
+                }
+            }
+			var wordLabel = document.getElementById('wordLabel');
+			wordLabel.innerHTML=currentWord;
+			var answerLabel = document.getElementById('answerLabel');
+			answerLabel.innerHTML=inputText;
+            if (bombs[0]) {
+				if(currentWord === ""){
+					drawWord();
+				}
+				var bombPosition =	wordGame.getPosition(bombs[0].realCenter);
+				
+				wordLabel.style.left = bombPosition[0]+'px';
+				wordLabel.style.top = bombPosition[1]+'px';
+
+				answerLabel.style.left = bombPosition[0]+'px';
+				answerLabel.style.top = (bombPosition[1] + 50)+'px';
+				
+                var movementVector = vectorPoints(bombs[0].realCenter, lookingAt)
+                for (var i = 0; i < 3; i++) {
+                    lookingAt[i] += movementVector[i] * 0.05;
+                }
+
+                lookAt(cameraPosition, lookingAt, [0, 0, 1]);
+            }
+
+            //if (active === true) {
+            //lookAt([cubeSize * lookRadiusMultiplier * Math.cos(time * 0.75) + cityCenter[0], cubeSize * lookRadiusMultiplier * Math.sin(time * 0.75) + cityCenter[1], cubeSize * lookRadiusMultiplier / 3], cityCenter, [0, 0, 1]);
+            //}
+        }
+		
+		function drawWord(){
+		if(words.length > 0){
+		currentWord = words[0].word;
+			correctAnswer = words[0].answer;
+			words.splice(0, 1);
+		}else{
+		win();}
+			
+		}
+		function shuffle(a) {
+			var j, x, i;
+			for (i = a.length; i; i--) {
+			j = Math.floor(Math.random() * i);
+			x = a[i - 1];
+			a[i - 1] = a[j];
+			a[j] = x;
+			}
+		}
+		function explode(){
+			currentWord = "Отговор: " + correctAnswer;
+			var elem = document.getElementById('mainCanvas');
+			elem.parentNode.removeChild(elem);
+		}
+		function win(){
+			currentWord = "Ти спаси Селото!";
+			var elem = document.getElementById('mainCanvas');
+			elem.parentNode.removeChild(elem);
+		}
+		
+		function destroyBombByIndex(index){
+		for (var j = 0; j < wordGame.objectList.length; j++) {
+                        if (wordGame.objectList[j].id === bombs[index].id) {
+                            wordGame.objectList.splice(j, 1);
+                        }
+                    }
+                    bombs.splice(index, 1);
+		}
+		
+        function addMouseListeners() {
+            wordGame.gl.canvas.addEventListener('mousemove', mouseMove, false);
+            wordGame.gl.canvas.addEventListener('mousedown', mouseDown, false);
+            wordGame.gl.canvas.addEventListener('mouseup', mouseUp, false);
+        }
+
+        function mouseDown(event) {
+            if (event.which == 1) {
+                isMousePressed = true;
+                lastMousePosition = getMouseCoordinates(event);
+            }
+        }
+
+        function mouseUp(event) {
+            if (event.which == 1) {
+                isMousePressed = false;
+                lastMousePosition = undefined;
+            }
+        }
+
+        function mouseMove(event) {
+            if (isMousePressed == true) {
+                var currentCoordinates = getMouseCoordinates(event);
+                var movementDelta = [currentCoordinates[0] - lastMousePosition[0], 0, currentCoordinates[1] - lastMousePosition[1]];
+                lookingAt[0] += movementDelta[0] * 3;
+                lookingAt[2] += movementDelta[2] * -3;
+                lastMousePosition = currentCoordinates;
+            }
+        }
+
+        function getMouseCoordinates(eventObject) {
+            var x = event.clientX - event.target.offsetLeft - event.target.offsetWidth / 2;
+            var y = -(event.clientY - event.target.offsetTop - event.target.offsetHeight / 2);
+            return [x, y, 0];
+        }
+
+        function createBomb() {
+            var spawnPoint = [random(-200, 200) * bombRangeMultiplier, random(-200, 200) * bombRangeMultiplier, random(1500, 2000)];
+            var bombBody = new Suica.Spheroid(spawnPoint, [bombSize, bombSize, bombSize * 2]);
+            bombBody.color = [0.2, 0.2, 0.2];
+            var finCenter = sameAs(bombBody.center);
+            finCenter[2] = finCenter[2] + bombSize * 2 * 0.66;
+            var finStyle = {
+                color: [178 / 255, 34 / 255, 34 / 255]
+            };
+            var bombFin1 = new Suica.Cuboid(finCenter, [3 * bombSize, bombSize / 4, bombSize]).custom(finStyle);
+            var bombFin2 = sameAs(bombFin1);
+            bombFin2.spin = Math.PI / 2;
+            var bomb = new Suica.Group([bombBody, bombFin1, bombFin2]);
+            //bomb.merge();
+            bomb.realCenter = sameAs(spawnPoint);
+
+            bomb.moveBy = function(delta) {
+                bomb.center[0] += delta[0];
+                bomb.realCenter[0] += delta[0];
+
+                bomb.center[1] += delta[1];
+                bomb.realCenter[1] += delta[1];
+
+                bomb.center[2] += delta[2];
+                bomb.realCenter[2] += delta[2];
+            }
+
+            return bomb;
+        }
+
+        function createCity() {
+            cityGroup = new Suica.Group([]);
+            var houseBaseTexture = new Suica.Image("/free-house-wall.jpg");
+            houseBaseTexture.scale = [houseTextureMultiplier, houseTextureMultiplier];
+            var houseBaseStyle = {
+                image: houseBaseTexture
+            };
+            var roofTexture = new Suica.Image("free-roof-textures.jpg");
+            var roofStyle = {
+                image: roofTexture,
+                spin: Math.PI / 4
+            };
+
+            for (var i = 1; i <= citySizeMultiplier; i++) {
+                for (var j = 0; j < 3 * Math.pow(2, i * 0.6); j++) {
+                    var houseCenter = sameAs(cityCenter);
+                    houseCenter[0] = houseCenter[0] + Math.cos(j) * random(0.9, 1.2) * cubeSize * i * (citySizeMultiplier / 3 + i);
+                    houseCenter[1] = houseCenter[1] + Math.sin(j) * random(0.9, 1.2) * cubeSize * i * (citySizeMultiplier / 3 + i);
+                    var houseBase = new Suica.Cuboid(houseCenter, [cubeSize, cubeSize, cubeSize]).custom(houseBaseStyle);
+                    cityGroup.add(houseBase);
+
+                    var roofCenter = sameAs(houseBase.center);
+                    roofCenter[2] = roofCenter[2] + cubeSize / 2;
+                    var roof = new Suica.Pyramid(roofCenter, roofRadius, cubeSize / 1.75, 4).custom(roofStyle);
+                    cityGroup.add(roof);
+                }
+            }
+
+            cityGroup.spin = Math.PI / 6;
+        }
+		function handleSubmitAnswer(){
+			if(inputText.toUpperCase() === correctAnswer.toUpperCase()){
+				destroyBombByIndex(0);
+				score++;
+				currentWord = ""
+				correctAnswer = "";
+				if(words.length == 0){
+				win();}
+			}
+			inputText = "";
+		}
+        function keyPressed(e) {    
+            var evtobj = window.event ? event : e;    
+            var unicode = evtobj.charCode ? evtobj.charCode : evtobj.keyCode;    
+            var character = String.fromCharCode(unicode);   
+            if (character === " ") {
+                active = !active;
+                wordGame.nextFrame = active ? loop : null;
+            } else if (character === "-") {
+                lookRadiusMultiplier += 0.5;
+                cameraPosition[1] += 100;
+                cameraPosition[2] += 20;
+            } else if (character === "+") {
+                lookRadiusMultiplier -= 0.5;
+                cameraPosition[1] -= 100;
+                cameraPosition[2] -= 20;
+            } else if(unicode == 13){
+				handleSubmitAnswer();
+			} else{
+				inputText+=character;
+			}
+        }
+        document.onkeypress = keyPressed;
+    </script>
+</head>
+
+<body style="text-align: center; margin: 0 0 0 0;" onload="main()">
+    <noscript>
+		No JS
+	</noscript>
+    <label id="infoLabel"  style="font-size: 1em; position: absolute; background-color: transparent; z-index: 10;"></label>
+	<label id="wordLabel"  style="font-size: 2em; position: absolute; background-color: transparent; z-index: 10;"></label>
+	<label id="answerLabel" style="font-size: 1em; position: absolute; background-color: transparent; z-index: 10;"></label>
+    <br/>
+    <canvas id="mainCanvas" style="z-index: -1" width="200" height="200">
+		No Canvas
+	</canvas>
+</body>
