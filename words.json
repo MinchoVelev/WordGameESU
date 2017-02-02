@@ -1,8 +1,12 @@
 ﻿words=[
-{word: "Куче", answer: "dog"},
-{word: "Котка", answer: "cat"},
-{word: "Маймуна", answer: "monkey"},
-{word: "Дума", answer: "word"},
-{word: "Цвете", answer: "flower"},
-{word: "Небе", answer: "sky"}
+{word: "Куче", answer: "dog", type: "animate"},
+{word: "Котка", answer: "cat", type: "animate"},
+{word: "Маймуна", answer: "monkey", type: "animate"},
+{word: "Цвете", answer: "flower", type: "animate"},
+{word: "Небе", answer: "sky", type: "inanimate"},
+{word: "Камък", answer: "stone", type: "inanimate"},
+{word: "Море", answer: "sea", type: "inanimate"},
+{word: "Река", answer: "river", type: "inanimate"},
+{word: "Домат", answer: "tomato", type: "animate"},
+{word: "Лисица", answer: "fox", type: "animate"}
 ]
