@@ -7,8 +7,8 @@
 	<script src="utils.js"></script>
     <script>
         "use strict";
+		
         //constants
-
         var cubeSize = Math.pow(2, 6);
         var bombSize = cubeSize / 3;
         var houseTextureMultiplier = cubeSize / 64;
@@ -21,7 +21,6 @@
         var grassSize = 2048 * grassSizeScale;
         var detonationHeight = (cubeSize + bombSize) * 2;
         var undefined;
-		
         //end of constants
 
         var wordGame;
@@ -40,10 +39,15 @@
 		var bombSound;
 		var shootSound;
 		var winSound;
+		var wordLabel;
+		var answerLabel;
+		
         function main() {
 			winSound = new Audio("./win.wav");
 			bombSound = new Audio("./bomb.wav");
 			shootSound = new Audio("./shoot.wav");
+			wordLabel = document.getElementById('wordLabel');
+			answerLabel = document.getElementById('answerLabel');
 			shuffle(words);
             var canvas = document.getElementById("mainCanvas");
             canvas.height = window.innerHeight;
@@ -70,7 +74,7 @@
             label.innerHTML = "Time: " + time + " Score: " + score;
 
 
-            if (time % 4 == 3 && time != lastCreatedBombSecond) {
+            if (bombs.length == 0 || (time % 4 == 3 && time != lastCreatedBombSecond)) {
                 lastCreatedBombSecond = time;
                 var newBomb = createBomb();
                 bombs.push(newBomb);
@@ -79,16 +83,14 @@
 
 
             for (var i = 0; i < bombs.length; i++) {
-
                 bombs[i].moveBy([0, 0, -2]);
                 if (bombs[i].realCenter[2] < detonationHeight) {
-                    destroyBombByIndex(i);
+					destroyAllBombs();
 					explode();
+					break;
                 }
             }
-			var wordLabel = document.getElementById('wordLabel');
 			wordLabel.innerHTML=currentWord;
-			var answerLabel = document.getElementById('answerLabel');
 			answerLabel.innerHTML=inputText;
             if (bombs[0]) {
 				if(currentWord === ""){
@@ -109,10 +111,6 @@
 
                 lookAt(cameraPosition, lookingAt, [0, 0, 1]);
             }
-
-            //if (active === true) {
-            //lookAt([cubeSize * lookRadiusMultiplier * Math.cos(time * 0.75) + cityCenter[0], cubeSize * lookRadiusMultiplier * Math.sin(time * 0.75) + cityCenter[1], cubeSize * lookRadiusMultiplier / 3], cityCenter, [0, 0, 1]);
-            //}
         }
 		
 		function drawWord(){
@@ -125,19 +123,39 @@
 			
 		}
 		function explode(){
+			bombSound.load();
 			bombSound.play();
-			currentWord = "Не можа да спасиш селото! Верният отговор беше: " + correctAnswer;
-			var elem = document.getElementById('mainCanvas');
-			elem.parentNode.removeChild(elem);
+			endGame("Не можа да спасиш селото!");
 		}
 		function win(){
-			currentWord = "Ти спаси Селото!";
-			var elem = document.getElementById('mainCanvas');
-			elem.parentNode.removeChild(elem);
 			winSound.load();
 			winSound.play();
+			endGame("Ти спаси Селото!");
+			
 		}
-		
+		function endGame(text){
+			text += " Натисни тук за да играеш отново!";
+			wordGame.nextFrame = undefined;
+			currentWord = text;
+			wordLabel.innerHTML = text;
+			wordLabel.onclick = function(){
+			location.reload();
+			};
+			answerLabel.innerHTML = "";
+			document.onkeypress = undefined;
+			document.onkeydown = undefined;
+			wordLabel.style.top = (window.innerHeight/2) + "px";
+			wordLabel.style.left = (window.innerWidth/4) + "px";
+			
+			var elem = document.getElementById('mainCanvas');
+			elem.parentNode.removeChild(elem);
+			
+		}
+		function destroyAllBombs(){
+			for(var i=0; i<bombs.length; i++){
+				destroyBombByIndex(i);
+			}
+		}
 		function destroyBombByIndex(index){
 		for (var j = 0; j < wordGame.objectList.length; j++) {
                         if (wordGame.objectList[j].id === bombs[index].id) {
@@ -196,7 +214,7 @@
             var bombFin2 = sameAs(bombFin1);
             bombFin2.spin = Math.PI / 2;
             var bomb = new Suica.Group([bombBody, bombFin1, bombFin2]);
-            //bomb.merge();
+
             bomb.realCenter = sameAs(spawnPoint);
 
             bomb.moveBy = function(delta) {
@@ -257,13 +275,12 @@
 			inputText = "";
 		}
         function keyPressed(e) {    
-            var evtobj = window.event ? event : e;    
-            var unicode = evtobj.charCode ? evtobj.charCode : evtobj.keyCode;    
+            var unicode = getKeyCode(e); 
             var character = String.fromCharCode(unicode);   
-            if (character === " ") {
-                active = !active;
-                wordGame.nextFrame = active ? loop : null;
-            } else if (character === "-") {
+			if (unicode >= 65 && unicode <= 122){
+				inputText+=character;
+			}
+			else if (character === "-") {
                 lookRadiusMultiplier += 0.5;
                 cameraPosition[1] += 100;
                 cameraPosition[2] += 20;
@@ -271,13 +288,23 @@
                 lookRadiusMultiplier -= 0.5;
                 cameraPosition[1] -= 100;
                 cameraPosition[2] -= 20;
-            } else if(unicode == 13){
+            }  
+        }
+		function keyDown(e) {    
+            var unicode = getKeyCode(e);
+            var character = String.fromCharCode(unicode);   
+            if(unicode == 13){
 				handleSubmitAnswer();
-			} else{
-				inputText+=character;
+			} else if(unicode == 08){
+				inputText = inputText.substring(0, inputText.length - 1);
 			}
         }
+		function getKeyCode(e){
+		var evtobj = window.event ? event : e;    
+        return evtobj.charCode ? evtobj.charCode : evtobj.keyCode;
+		}
         document.onkeypress = keyPressed;
+		document.onkeydown = keyDown;
     </script>
 </head>
 
