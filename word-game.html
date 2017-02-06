@@ -3,12 +3,12 @@
 <head>
     <meta charset="utf-8">
     <script src="suica.min.js"></script>
-	<script src="words.json"></script>
-	<script src="utils.js"></script>
+    <script src="words.json"></script>
+    <script src="utils.js"></script>
     <script>
         "use strict";
-		
-        //constants
+
+        //константи
         var cubeSize = Math.pow(2, 6);
         var bombSize = cubeSize / 3;
         var houseTextureMultiplier = cubeSize / 64;
@@ -21,10 +21,10 @@
         var grassSize = 2048 * grassSizeScale;
         var detonationHeight = (cubeSize + bombSize) * 2;
         var undefined;
-        //end of constants
+        //край на константите
 
+        //променливи
         var wordGame;
-        var active = true;
         var cityGroup;
         var bombs = [];
         var lastMousePosition;
@@ -33,47 +33,57 @@
         var lookingAt = [0, 0, 0];
         var cameraPosition = [0, 4000, 750];
         var lastCreatedBombSecond = -1;
-		var inputText = "";
-		var correctAnswer = "";
-		var currentWord = "";
-		var bombSound;
-		var shootSound;
-		var winSound;
-		var wordLabel;
-		var answerLabel;
-		
+        var inputText = "";
+        var correctAnswer = "";
+        var currentWord = "";
+        var bombSound;
+        var shootSound;
+        var winSound;
+        var wordLabel;
+        var answerLabel;
+        var infoLabel
+        //край на променливите
+
         function main() {
-			winSound = new Audio("./win.wav");
-			bombSound = new Audio("./bomb.wav");
-			shootSound = new Audio("./shoot.wav");
-			wordLabel = document.getElementById('wordLabel');
-			answerLabel = document.getElementById('answerLabel');
-			shuffle(words);
-            var canvas = document.getElementById("mainCanvas");
-            canvas.height = window.innerHeight;
-            canvas.width = window.innerWidth;
+            //Инициализация на играта
+            loadSounds();
+            initDomReferences();
+            shuffle(words);
+
+            //Инициализация на СУИКА
             wordGame = new Suica("mainCanvas");
             background([135 / 255, 206 / 255, 250 / 250]);
+            lookAt(cameraPosition, lookingAt, [0, 0, 1]);
+
+            //Инициализация на земята
             var grassTexture = new Suica.Image("./grass-free-texture.jpg");
-            grassTexture.scale = [grassSize/256, grassSize/256];
+            grassTexture.scale = [grassSize / 256, grassSize / 256];
             var grass = new Suica.Cuboid(0, [grassSize, grassSize, 1]).custom({
                 image: grassTexture,
                 light: false
             });
+
+            //Инициализация на слънцето
             var star1 = new Suica.Sphere([0, -15000, 500], 3000);
             star1.color = [253 / 255, 184 / 255, 19 / 255];
+
+            //Създаваме селото
             createCity();
+
+            //Закачаме слушателите за мишката
             addMouseListeners();
-            lookAt(cameraPosition, lookingAt, [0, 0, 1]);
+            //Задаваме метод за рисуване на кадри.
+
             wordGame.nextFrame = loop;
         }
 
+
         function loop() {
             var time = Math.round(Suica.time);
-            var label = document.getElementById('infoLabel');
-            label.innerHTML = "Time: " + time + " Score: " + score;
 
+            infoLabel.innerHTML = "Time: " + time + " Score: " + score;
 
+            //Ако няма бомба или е изминало определено време, създаваме нова.
             if (bombs.length == 0 || (time % 4 == 3 && time != lastCreatedBombSecond)) {
                 lastCreatedBombSecond = time;
                 var newBomb = createBomb();
@@ -81,90 +91,126 @@
             }
 
 
-
+            //Местим всички бомби и проверяваме дали някоя не е достатъчно близо за експлозия
             for (var i = 0; i < bombs.length; i++) {
                 bombs[i].moveBy([0, 0, -2]);
                 if (bombs[i].realCenter[2] < detonationHeight) {
-					destroyAllBombs();
-					explode();
-					break;
+                    //Унищожаваме всички бомби и приключваме играта с експлозия.
+                    destroyAllBombs();
+                    explode();
+                    return;
                 }
             }
-			wordLabel.innerHTML=currentWord;
-			answerLabel.innerHTML=inputText;
-            if (bombs[0]) {
-				if(currentWord === ""){
-					drawWord();
-				}
-				var bombPosition =	wordGame.getPosition(bombs[0].realCenter);
-				
-				wordLabel.style.left = bombPosition[0]+'px';
-				wordLabel.style.top = bombPosition[1]+'px';
 
-				answerLabel.style.left = bombPosition[0]+'px';
-				answerLabel.style.top = (bombPosition[1] + 50)+'px';
-				
-                var movementVector = vectorPoints(bombs[0].realCenter, lookingAt)
-                for (var i = 0; i < 3; i++) {
-                    lookingAt[i] += movementVector[i] * 0.05;
-                }
+            //Ако няма изтеглена дума - теглим.
+            if (currentWord === "") {
 
-                lookAt(cameraPosition, lookingAt, [0, 0, 1]);
+                drawWord();
+            }
+
+            //Поставяме етикетите до бомбата
+            setLabelsPosition();
+
+            //Приближаваме камерата към позицията на бомбата.
+            var movementVector = vectorPoints(bombs[0].realCenter, lookingAt)
+            for (var i = 0; i < 3; i++) {
+                lookingAt[i] += movementVector[i] * 0.05;
+            }
+            lookAt(cameraPosition, lookingAt, [0, 0, 1]);
+
+            //Обмовяваме текста в етикетите
+            wordLabel.innerHTML = currentWord;
+            answerLabel.innerHTML = inputText;
+        }
+
+        function setLabelsPosition() {
+            //Взимаме позицията на бомбата
+            var bombPosition = wordGame.getPosition(bombs[0].realCenter);
+
+            //Поставяме етикетите до бомбата.
+            wordLabel.style.left = bombPosition[0] + 'px';
+            wordLabel.style.top = bombPosition[1] + 'px';
+
+            answerLabel.style.left = bombPosition[0] + 'px';
+            answerLabel.style.top = (bombPosition[1] + 50) + 'px';
+        }
+
+        function drawWord() {
+            //Ако има още думи - теглим, ако не, приключваме играта с победа.
+            if (words.length > 0) {
+                currentWord = words[0].word;
+                correctAnswer = words[0].answer;
+                words.splice(0, 1);
+            } else {
+                win();
+            }
+
+        }
+
+        function explode() {
+            bombSound.load();
+            bombSound.play();
+            endGame("Не можа да спасиш селото!");
+        }
+
+        function win() {
+            winSound.load();
+            winSound.play();
+            endGame("Ти спаси Селото!");
+
+        }
+
+        function endGame(text) {
+            wordGame.nextFrame = undefined;
+
+            text += " Натисни тук за да играеш отново!";
+            currentWord = text;
+            wordLabel.innerHTML = text;
+            wordLabel.onclick = function() {
+                location.reload();
+            };
+            answerLabel.innerHTML = "";
+            document.onkeypress = undefined;
+            document.onkeydown = undefined;
+            wordLabel.style.top = (window.innerHeight / 2) + "px";
+            wordLabel.style.left = (window.innerWidth / 4) + "px";
+
+            var elem = document.getElementById('mainCanvas');
+            elem.parentNode.removeChild(elem);
+
+        }
+
+        function initDomReferences() {
+            wordLabel = document.getElementById('wordLabel');
+            answerLabel = document.getElementById('answerLabel');
+            infoLabel = document.getElementById('infoLabel');
+            var canvas = document.getElementById("mainCanvas");
+            canvas.height = window.innerHeight;
+            canvas.width = window.innerWidth;
+        }
+
+        function loadSounds() {
+            winSound = new Audio("./win.wav");
+            bombSound = new Audio("./bomb.wav");
+            shootSound = new Audio("./shoot.wav");
+        }
+
+        function destroyAllBombs() {
+            for (var i = 0; i < bombs.length; i++) {
+                destroyBombByIndex(i);
             }
         }
-		
-		function drawWord(){
-		if(words.length > 0){
-		currentWord = words[0].word;
-			correctAnswer = words[0].answer;
-			words.splice(0, 1);
-		}else{
-		win();}
-			
-		}
-		function explode(){
-			bombSound.load();
-			bombSound.play();
-			endGame("Не можа да спасиш селото!");
-		}
-		function win(){
-			winSound.load();
-			winSound.play();
-			endGame("Ти спаси Селото!");
-			
-		}
-		function endGame(text){
-			text += " Натисни тук за да играеш отново!";
-			wordGame.nextFrame = undefined;
-			currentWord = text;
-			wordLabel.innerHTML = text;
-			wordLabel.onclick = function(){
-			location.reload();
-			};
-			answerLabel.innerHTML = "";
-			document.onkeypress = undefined;
-			document.onkeydown = undefined;
-			wordLabel.style.top = (window.innerHeight/2) + "px";
-			wordLabel.style.left = (window.innerWidth/4) + "px";
-			
-			var elem = document.getElementById('mainCanvas');
-			elem.parentNode.removeChild(elem);
-			
-		}
-		function destroyAllBombs(){
-			for(var i=0; i<bombs.length; i++){
-				destroyBombByIndex(i);
-			}
-		}
-		function destroyBombByIndex(index){
-		for (var j = 0; j < wordGame.objectList.length; j++) {
-                        if (wordGame.objectList[j].id === bombs[index].id) {
-                            wordGame.objectList.splice(j, 1);
-                        }
-                    }
-                    bombs.splice(index, 1);
-		}
-		
+
+        //Метод изтриващ всички референции към дадена бомба.
+        function destroyBombByIndex(index) {
+            for (var j = 0; j < wordGame.objectList.length; j++) {
+                if (wordGame.objectList[j].id === bombs[index].id) {
+                    wordGame.objectList.splice(j, 1);
+                }
+            }
+            bombs.splice(index, 1);
+        }
+
         function addMouseListeners() {
             wordGame.gl.canvas.addEventListener('mousemove', mouseMove, false);
             wordGame.gl.canvas.addEventListener('mousedown', mouseDown, false);
@@ -201,6 +247,7 @@
             return [x, y, 0];
         }
 
+        //Метод който създава бомба в даден радиус.
         function createBomb() {
             var spawnPoint = [random(-200, 200) * bombRangeMultiplier, random(-200, 200) * bombRangeMultiplier, random(1500, 2000)];
             var bombBody = new Suica.Spheroid(spawnPoint, [bombSize, bombSize, bombSize * 2]);
@@ -261,26 +308,30 @@
 
             cityGroup.spin = Math.PI / 6;
         }
-		function handleSubmitAnswer(){
-			if(inputText.toUpperCase() === correctAnswer.toUpperCase()){
-				shootSound.load();
-				shootSound.play();
-				destroyBombByIndex(0);
-				score++;
-				currentWord = ""
-				correctAnswer = "";
-				if(words.length == 0){
-				win();}
-			}
-			inputText = "";
-		}
+
+        //Метод, който при подаване на отговор, проверява дали е правилен и действа спрямо резултата.
+        function handleSubmitAnswer() {
+            if (inputText.toUpperCase() === correctAnswer.toUpperCase()) {
+                shootSound.load();
+                shootSound.play();
+                destroyBombByIndex(0);
+                score++;
+                currentWord = ""
+                correctAnswer = "";
+                if (words.length == 0) {
+                    win();
+                }
+            }
+            inputText = "";
+        }
+
+        //Метод за приемане на въведентие символи.
         function keyPressed(e) {    
             var unicode = getKeyCode(e); 
             var character = String.fromCharCode(unicode);   
-			if (unicode >= 65 && unicode <= 122){
-				inputText+=character;
-			}
-			else if (character === "-") {
+            if (unicode >= 65 && unicode <= 122) {
+                inputText += character;
+            } else if (character === "-") {
                 lookRadiusMultiplier += 0.5;
                 cameraPosition[1] += 100;
                 cameraPosition[2] += 20;
@@ -288,23 +339,26 @@
                 lookRadiusMultiplier -= 0.5;
                 cameraPosition[1] -= 100;
                 cameraPosition[2] -= 20;
-            }  
+            }
         }
-		function keyDown(e) {    
+
+        //Метод за приемане на натиснатите клавиши
+        function keyDown(e) {    
             var unicode = getKeyCode(e);
             var character = String.fromCharCode(unicode);   
-            if(unicode == 13){
-				handleSubmitAnswer();
-			} else if(unicode == 08){
-				inputText = inputText.substring(0, inputText.length - 1);
-			}
+            if (unicode == 13) {
+                handleSubmitAnswer();
+            } else if (unicode == 08) {
+                inputText = inputText.substring(0, inputText.length - 1);
+            }
         }
-		function getKeyCode(e){
-		var evtobj = window.event ? event : e;    
-        return evtobj.charCode ? evtobj.charCode : evtobj.keyCode;
-		}
+
+        function getKeyCode(e) {
+            var evtobj = window.event ? event : e;    
+            return evtobj.charCode ? evtobj.charCode : evtobj.keyCode;
+        }
         document.onkeypress = keyPressed;
-		document.onkeydown = keyDown;
+        document.onkeydown = keyDown;
     </script>
 </head>
 
@@ -312,10 +366,10 @@
     <noscript>
 		No JS
 	</noscript>
-    <label id="infoLabel"  style="font-size: 1em; position: absolute; background-color: transparent; z-index: 10;"></label>
-	<label id="wordLabel"  style="font-size: 2em; position: absolute; background-color: transparent; z-index: 10;"></label>
-	<label id="answerLabel" style="font-size: 1em; position: absolute; background-color: transparent; z-index: 10;"></label>
-    
+    <label id="infoLabel" style="font-size: 1em; position: absolute; background-color: transparent; z-index: 10;"></label>
+    <label id="wordLabel" style="font-size: 2em; position: absolute; background-color: transparent; z-index: 10;"></label>
+    <label id="answerLabel" style="font-size: 1em; position: absolute; background-color: transparent; z-index: 10;"></label>
+
     <canvas id="mainCanvas" style="z-index: -1" width="200" height="200">
 		No Canvas
 	</canvas>
