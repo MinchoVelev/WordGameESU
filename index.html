@@ -2,122 +2,165 @@
 
 <head>
     <meta charset="utf-8">
-	<link rel="stylesheet" type="text/css" href="./mystyle.css">
+    <link rel="stylesheet" type="text/css" href="./mystyle.css">
     <script src="./suica.min.js"></script>
-	<script src="./words.json"></script>
-	<script src="./utils.js"></script>
+    <script src="./words.json"></script>
+    <script src="./utils.js"></script>
     <script>
         "use strict";
-		var currentCoordinates = [0,0,0];
-		var wordLabel;
-		var currentWord;
-		var typeGame;
-		var successSound;
-		var failureSound;
-		var winSound;
-		var shuffledWords;
-		var stateLabel;
-		var canvas;
-		var undefined;
-		var startTime;
-		var endTime;
-		
-		
-		function initializeGame(){
-			successSound = new Audio("./success.wav");
-			failureSound = new Audio("./failure.wav");
-			winSound = new Audio("./win.wav");
-			canvas = document.getElementById("natureTypeGame");
-			canvas.height = "400";
-			var mainDiv = document.getElementById("content");
-            canvas.width = mainDiv.clientWidth/2;
-			
-			typeGame = new Suica("natureTypeGame");
-			typeGame.orthographic(-2, 2);
-			lookAt([0,0,1], [0,0,0], [0,1,0]);
-			
-			wordLabel = document.getElementById("typeGameWord");
-			stateLabel = document.getElementById("stateLabel");
-			
-			var center = typeGame.getPosition([0,0,0]);
-			stateLabel.style.left = (center[0]-45)+'px';
-			stateLabel.style.top = (center[1]-150)+'px';
-			stateLabel.innerHTML = "СТАРТ!";
+        var currentCoordinates = [0, 0, 0];
+        var wordLabel;
+        var currentWord;
+        var typeGame;
+        var successSound;
+        var failureSound;
+        var winSound;
+        var shuffledWords;
+        var stateLabel;
+        var canvas;
+        var undefined;
+        var startTime;
+        var endTime;
 
-			var animateTexture = new Suica.Image("./animateTexture.jpg");
-			var animateSquare = new Suica.Square([-125,-125,0], 75).custom({image: animateTexture, spin: Math.PI/2, interactive: true});
-			animateSquare.answer = "animate";
-			var inanimateTexture = new Suica.Image("./inanimateTexture.jpg");
-			var inanimateSquare = new Suica.Square([125,-125,0], 75).custom({image: inanimateTexture, spin: Math.PI/2, interactive: true});
-			inanimateSquare.answer="inanimate";
-			
-			typeGame.gl.canvas.addEventListener('mousemove', mouseMove, false);
-			typeGame.gl.canvas.addEventListener('mousedown', mouseDown, false);
-			
-			typeGame.nextFrame=undefined;
-			
-		}
-		function startTypeGame(){
+
+        function initializeGame() {
+            //Зареждаме звуците
+            loadSounds();
+
+            //Задаваме височината на платното
+            canvas = document.getElementById("natureTypeGame");
+            canvas.height = "400";
+            var mainDiv = document.getElementById("content");
+            canvas.width = mainDiv.clientWidth / 2;
+
+            //Иницализираме СУИКА за 2D игра.
+            typeGame = new Suica("natureTypeGame");
+            typeGame.orthographic(-2, 2);
+            lookAt([0, 0, 1], [0, 0, 0], [0, 1, 0]);
+
+
+            //Създаваме референции към етикетите които ще ползваме.
+            initLabelReferences();
+
+            //Добавяме бутона за старт на играта
+            addStartButton();
+
+            //Създаваме квадратите на които се клика.
+            createTargets()
+
+            //Дубавяме слушатели за движение с мишката
+            typeGame.gl.canvas.addEventListener('mousemove', mouseMove, false);
+            typeGame.gl.canvas.addEventListener('mousedown', mouseDown, false);
+
+            typeGame.nextFrame = undefined;
+
+        }
 		
-			stateLabel.innerHTML = "";
-			shuffledWords = sameAs(words);
-			shuffle(shuffledWords);
-			typeGame.nextFrame = loop;
-			startTime = new Date();
-		}
-		function loop() {
-		if (shuffledWords.length == 0 && wordLabel.innerHTML === "") {
-		endTime = new Date();
-		winSound.load();
-		winSound.play();
-		stateLabel.innerHTML = "Успя за " + (endTime-startTime)/1000 + " секунди! Натисни тук ако можеш по-бързо!";
-		typeGame.nextFrame = undefined;
-		return;
-		};
-		if(wordLabel.innerHTML === ""){
-		currentWord = shuffledWords[0];
-		wordLabel.innerHTML = currentWord.answer;
-		shuffledWords.splice(0, 1);
-		}
-		wordLabel.style.left = currentCoordinates[0]+'px';
-		wordLabel.style.top = currentCoordinates[1]+'px';
-		}
-		function mouseMove(event) {
-            var x = event.clientX -50;
-            var y = event.clientY -50;
+		//Метод за започване на нова игра.
+        function startTypeGame() {
+            stateLabel.innerHTML = "";
+            shuffledWords = sameAs(words);
+            shuffle(shuffledWords);
+            typeGame.nextFrame = loop;
+            startTime = new Date();
+        }
+		
+		//Метод за рисуване на следващи кадри.
+        function loop() {
+            if (shuffledWords.length == 0 && wordLabel.innerHTML === "") {
+                endTime = new Date();
+                winSound.load();
+                winSound.play();
+                stateLabel.innerHTML = "Успя за " + (endTime - startTime) / 1000 + " секунди! Натисни тук ако можеш по-бързо!";
+                typeGame.nextFrame = undefined;
+                return;
+            };
+            if (wordLabel.innerHTML === "") {
+                currentWord = shuffledWords[0];
+                wordLabel.innerHTML = currentWord.answer;
+                shuffledWords.splice(0, 1);
+            }
+            wordLabel.style.left = currentCoordinates[0] + 'px';
+            wordLabel.style.top = currentCoordinates[1] + 'px';
+        }
+
+        function loadSounds() {
+            successSound = new Audio("./success.wav");
+            failureSound = new Audio("./failure.wav");
+            winSound = new Audio("./win.wav");
+        }
+
+        function createTargets() {
+            var animateTexture = new Suica.Image("./animateTexture.jpg");
+            var animateSquare = new Suica.Square([-125, -125, 0], 75).custom({
+                image: animateTexture,
+                spin: Math.PI / 2,
+                interactive: true
+            });
+            animateSquare.answer = "animate";
+            var inanimateTexture = new Suica.Image("./inanimateTexture.jpg");
+            var inanimateSquare = new Suica.Square([125, -125, 0], 75).custom({
+                image: inanimateTexture,
+                spin: Math.PI / 2,
+                interactive: true
+            });
+            inanimateSquare.answer = "inanimate";
+        }
+
+        function addStartButton() {
+            var center = typeGame.getPosition([0, 0, 0]);
+            stateLabel.style.left = (center[0] - 45) + 'px';
+            stateLabel.style.top = (center[1] - 150) + 'px';
+            stateLabel.innerHTML = "СТАРТ!";
+        }
+
+        function initLabelReferences() {
+            wordLabel = document.getElementById("typeGameWord");
+            stateLabel = document.getElementById("stateLabel");
+        }
+	
+		//Метод взимащ координатите на мишката.
+        function mouseMove(event) {
+            var x = event.clientX - 50;
+            var y = event.clientY - 50;
             currentCoordinates = [x, y, 0];
         }
-		function mouseDown(event){
-			var x = event.clientX;
-			var y = event.clientY;
-			var selection = typeGame.objectAtPoint(x,y);
-			if(selection){
-				if(selection.answer === currentWord.type){
-				successSound.load();
-				successSound.play();
-				wordLabel.innerHTML = "";
-				
-				}else {
-				failureSound.load();
-				failureSound.play();
-				}
-			}
-		}
+		
+		//Метод проверяващ при кликане дали думата е поставена в правилната категория.
+        function mouseDown(event) {
+            var x = event.clientX;
+            var y = event.clientY;
+            var selection = typeGame.objectAtPoint(x, y);
+            if (selection) {
+                if (selection.answer === currentWord.type) {
+                    successSound.load();
+                    successSound.play();
+                    wordLabel.innerHTML = "";
+
+                } else {
+                    failureSound.load();
+                    failureSound.play();
+                }
+            }
+        }
     </script>
 </head>
 
-<body onload="initializeGame()" background="background.jpg" >
+<body onload="initializeGame()" background="background.jpg">
     <noscript>
 		No JS
 	</noscript>
-	<div id="content">
-	<h1>Nature (Природа)</h1>
-	<h2>Урок по английски език</h2>
-	<h3>Animate and inanimate nature</h3>
-	<p>Има два типа природа: <b>жива</b> и <b>нежива</b> природа. Живата природа са всички растения, животни, гъби и подобни. Примери за елементи от живата природа са: <b>tree</b>/<i>дърво</i>, <b>cat</b>/<i>котка</i>, <b>dog</b>/<i>куче</i>, <b>monkey</b>/<i>маймуна</i>, <b>flower</b>/<i>цвете</i>. В неживата природа влизат всички неща в които не протичат жизнени процеси и не са създадени от хората. Примери за елементи от неживата природа са: <b>sky</b>/<i>небе</i>, <b>stone</b>/<i>камък</i>, <b>river</b>/<i>река</i>, <b>sea</b>/<i>море</i>.</p>
-	<span>Упражнение! Можеш ли да избереш, кой тип природа съответства на тези думи? Избери дървото за жива и камъкът за нежива природа. Натисни старт за да започнеш!<br/><br/><label id="typeGameWord"></label><label id="stateLabel" onclick="startTypeGame()"></label><label id="infoLabel"></label><br/>
+    <div id="content">
+        <h1>Nature (Природа)</h1>
+        <h2>Урок по английски език</h2>
+        <h3>Animate and inanimate nature</h3>
+        <p>Има два типа природа: <b>жива</b> и <b>нежива</b> природа. Живата природа са всички растения, животни, гъби и подобни. Примери за елементи от живата природа са: <b>tree</b>/<i>дърво</i>, <b>cat</b>/<i>котка</i>, <b>dog</b>/<i>куче</i>, <b>monkey</b>/<i>маймуна</i>, <b>flower</b>/<i>цвете</i>. В неживата природа влизат всички неща в които не протичат жизнени процеси и не са създадени от хората. Примери за елементи от неживата природа са: <b>sky</b>/<i>небе</i>, <b>stone</b>/<i>камък</i>, <b>river</b>/<i>река</i>, <b>sea</b>/<i>море</i>.</p>
+        <span>Упражнение! Можеш ли да избереш, кой тип природа съответства на тези думи? Избери дървото за жива и камъкът за нежива природа. Натисни старт за да започнеш!<br/><br/><label id="typeGameWord"></label><label id="stateLabel" onclick="startTypeGame()"></label><label id="infoLabel"></label><br/>
 	<canvas id="natureTypeGame">No Canvas</canvas>
 	<span>
-	<p>Време е да проверим, колко думи си научил/а! <a href="./word-game.html">Натисни тук за да започнеш играта!</a></p>
+	<p>
+	
+	</p>
+	<p>Време е да проверим, колко думи си научил/а! Ще играем игра, в която трябва да превеждаш научените думи от този урок на английски! Използвай клавиатурата за да набереш отговора си и ENTER за да го въведеш и да обезвредиш бомбата!<a href="./word-game.html">Натисни тук за да започнеш играта!</a></p>
 	</div>
 </body>

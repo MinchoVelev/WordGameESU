@@ -1,6 +1,8 @@
 body {
 	text-align: center;
 	margin: auto;
+	font-size: 1.5em;
+	background-size: cover;
 }
 #content{
 	text-align: center;
@@ -10,10 +12,10 @@ body {
 	border-width: 0px 1px 0px 1px; 
 }
 p{
-	 margin: 1em 2em 1em 2em;
+	margin: 1em 2em 1em 2em;
 }
 span{
-	 margin: auto;
+	margin: auto;
 }
 h1{
 	margin-top: 1em;
@@ -33,7 +35,7 @@ h3{
 }
 
 #typeGameWord, #stateLabel{
-	font-size: 2em;
+	font-size: 1.75em;
 	position: absolute;
 	background-color: transparent;
 	z-index: 10;
